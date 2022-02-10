@@ -1,6 +1,8 @@
-import { GraphQLString } from "graphql";
+import { GraphQLBoolean, GraphQLID, GraphQLObjectType, GraphQLString } from "graphql";
 import { Users } from "../entities/users";
 import { UserType } from "../typeDefs/user";
+import bcrypt from "bcryptjs"
+import { resolve } from "path/posix";
 
 export const CREATE_USER = {
     type: UserType,
@@ -16,13 +18,31 @@ export const CREATE_USER = {
         //Constantes donde se guarda el valor recibido en args
         const{name, username, password} = args
 
+    //Encriptar password antes de guardar
+    const encryptPassword = await bcrypt.hash(password, 10);    
+
+
         //Insertar los datos recibidos en la tabla
         const result = await Users.insert({
+        //Se ponen los datos que deseo mostrar en el return 
             name:name,
             username: username,
-            password: password
+            password: encryptPassword
+
         })
         console.log(result)
-        return {username, id:result.identifiers[0].id}
+        return {password:encryptPassword, username:username, id:result.identifiers[0].id}
     }
+};
+
+export const DELETE_USER = {
+    type: GraphQLBoolean,
+    args:{
+        id: {type: GraphQLID}
+    },
+    async resolve(_:any, {id}:any){
+        const result = await Users.delete(id);
+        if(result.affected === 1) return true;
+        return false;
+    },
 }
